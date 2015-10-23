@@ -1,6 +1,6 @@
 __author__ = 'manuelli'
 
-
+import numpy as np
 #add support for dummy estimator
 
 class Estimator:
@@ -25,7 +25,7 @@ class Estimator:
     def update(self, u, y):
 
         x_process = np.dot(self.A, self.x_current) + np.dot(self.Bdt, u)
-        Q_process = np.dot(self.A, self.Q_current, self.A.transpose()) + self.W
+        Q_process = np.dot(np.dot(self.A, self.Q_current), self.A.transpose()) + self.W
 
         # this just propagates the estimate through the process model.
         # doesn't use any measurements
@@ -34,21 +34,19 @@ class Estimator:
             self.Q_current = Q_process
             return (self.x_current, self.Q_current)
 
-        h_current = self.h(self.x_current)
-        H = self.grad_h(self.x_current) # gradient of measurement function at current estimate
+        h_current = self.h(x_process)
+        H = self.grad_h(x_process) # gradient of measurement function at current estimate
 
-        # measurement minus current mean
-        y_bar = y - h_current
 
         # now we can compute the Kalman gain
         # K = Q_current * H^T [ H Q_current H^T + R]^{-1}
-        Q_current_H_T = np.dot(self.Q_current, H.transpose())
-        HQH_R_inv = np.linalg.inv(np.dot(np.dot(H, self.Q_current), H.transpose()) + self.R)
-        K = np.dot(Q_current_H_T, HQH_R_inv)
+        Q_process_H_T = np.dot(Q_process, H.transpose())
+        HQH_R_inv = np.linalg.inv(np.dot(np.dot(H, Q_process), H.transpose()) + self.R)
+        K = np.dot(Q_process_H_T, HQH_R_inv) # this is the Kalman gain
 
         I = np.identity(self.x_dim)
         Q_new = np.dot(I - np.dot(K, H), self.Q_current)
-        x_new = self.x_current + np.dot(K, y - h_current)
+        x_new = x_process + np.dot(K, y - h_current)
 
         # bookkeeping
         self.Q_current = Q_new

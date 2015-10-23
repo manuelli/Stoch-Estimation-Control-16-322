@@ -11,4 +11,4 @@ class Controller:
         self.K = K
 
     def computeControlInput(self, x, t):
-        return u_des(t) - np.dot(K, x)
+        return self.u_des(t) - np.dot(self.K, x - self.x_des(t))
